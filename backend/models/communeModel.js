@@ -1,0 +1,10 @@
+const pool = require('../config/db');
+
+async function lister() {
+  const [rows] = await pool.execute(
+    `SELECT id, nom FROM communes ORDER BY nom ASC`
+  );
+  return rows;
+}
+
+module.exports = { lister };
