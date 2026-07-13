@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
@@ -11,25 +10,79 @@ const { verifierToken } = require('./utils/jwt');
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL || 'http://localhost:5173' }
+// --------------------------------------------------------------
+// 1. Construction de la liste des origines autorisées
+// --------------------------------------------------------------
+const clientOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const adminOrigins = (process.env.ADMIN_URL || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const originsAutorisees = [...new Set([...clientOrigins, ...adminOrigins])];
+
+console.log('🔐 Origines autorisées (CORS) :', originsAutorisees);
+
+// --------------------------------------------------------------
+// 2. Middleware CORS personnalisé (plus fiable que la librairie)
+// --------------------------------------------------------------
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  // Vérifier si l'origine est dans la liste autorisée
+  if (originsAutorisees.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (originsAutorisees.length === 1 && originsAutorisees[0] === '*') {
+    // Cas particulier : si on autorise toutes les origines
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  // En-têtes communs
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+  // Gestion du preflight (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200); // Réponse immédiate sans suite
+  }
+  next();
 });
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+// --------------------------------------------------------------
+// 3. Middlewares standards
+// --------------------------------------------------------------
 app.use(express.json());
 
-// Photos des signalements (uploadees via multer) servies statiquement.
+// --------------------------------------------------------------
+// 4. Fichiers statiques (uploads)
+// --------------------------------------------------------------
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Point d'entree unique des routes API (aucune route n'est declaree ailleurs)
+// --------------------------------------------------------------
+// 5. Routes API
+// --------------------------------------------------------------
 app.use('/api', routes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API EcoKin operationnelle.' });
 });
 
-// Authentification du socket : le client envoie son JWT dans le handshake
-// (auth.token). Un socket non authentifie est rejete.
+// --------------------------------------------------------------
+// 6. Socket.IO avec CORS
+// --------------------------------------------------------------
+const io = new Server(server, {
+  cors: {
+    origin: originsAutorisees,
+    credentials: true,
+  }
+});
+
+// --------------------------------------------------------------
+// 7. Authentification Socket.IO (JWT)
+// --------------------------------------------------------------
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -42,21 +95,21 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  // Chaque utilisateur rejoint sa propre "room" : cela permet d'envoyer une
-  // notification privee (ex: changement de statut d'un signalement) sans
-  // jamais l'exposer aux autres clients connectes.
   const room = `user_${socket.utilisateur.id}`;
   socket.join(room);
-  console.log(`Client connecte (socket ${socket.id}) -> room ${room}`);
+  console.log(`Client connecté (socket ${socket.id}) -> room ${room}`);
 
   socket.on('disconnect', () => {
-    console.log(`Client deconnecte: ${socket.id}`);
+    console.log(`Client déconnecté: ${socket.id}`);
   });
 });
 
 app.set('io', io);
 
+// --------------------------------------------------------------
+// 8. Démarrage du serveur
+// --------------------------------------------------------------
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Serveur EcoKin demarre sur le port ${PORT}`);
+  console.log(`🚀 Serveur EcoKin démarré sur le port ${PORT}`);
 });

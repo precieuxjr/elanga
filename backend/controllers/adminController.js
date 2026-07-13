@@ -1,4 +1,13 @@
-const { changerStatut } = require('../models/signalementModel');
+const {
+  changerStatut,
+  listerPourAdmin,
+  statistiquesGlobales,
+  statistiquesParCommune,
+  repartitionParType,
+  listerParUtilisateur,
+  statistiquesParUtilisateur
+} = require('../models/signalementModel');
+const { listerContributeurs, compterUtilisateurs, trouverParId } = require('../models/utilisateurModel');
 
 // Emet une notification ciblee au citoyen proprietaire du signalement,
 // et met a jour la carte partagee de tous les clients connectes.
@@ -59,4 +68,80 @@ async function inValiderSignalement(req, res) {
   }
 }
 
-module.exports = { validerSignalement, inValiderSignalement };
+// GET /api/admin/utilisateurs
+// Liste des citoyens (contributeurs) avec leur activite (nb de signalements).
+async function listerUtilisateurs(req, res) {
+  try {
+    const utilisateurs = await listerContributeurs();
+    return res.json({ utilisateurs });
+  } catch (err) {
+    console.error('Erreur liste utilisateurs:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+}
+
+// GET /api/admin/utilisateurs/:id
+// Detail d'un citoyen : profil + tous ses signalements + ses statistiques.
+async function detailUtilisateur(req, res) {
+  try {
+    const { id } = req.params;
+    const utilisateur = await trouverParId(id);
+    if (!utilisateur) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const [signalements, statistiques] = await Promise.all([
+      listerParUtilisateur(id),
+      statistiquesParUtilisateur(id)
+    ]);
+
+    return res.json({ utilisateur, signalements, statistiques });
+  } catch (err) {
+    console.error('Erreur detail utilisateur:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+}
+
+// GET /api/admin/signalements?statut=EN_COURS&commune_id=3
+// Liste complete des signalements (tous statuts), pour validation/refus.
+async function listerSignalements(req, res) {
+  try {
+    const { statut, commune_id } = req.query;
+    const signalements = await listerPourAdmin({ statut, commune_id });
+    return res.json({ signalements });
+  } catch (err) {
+    console.error('Erreur liste signalements admin:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+}
+
+// GET /api/admin/statistiques
+// Donnees agregees du tableau de bord admin : compteurs globaux, repartition
+// par commune, repartition par type, nombre d'utilisateurs.
+async function statistiques(req, res) {
+  try {
+    const [globales, parCommune, parType, utilisateurs] = await Promise.all([
+      statistiquesGlobales(),
+      statistiquesParCommune(),
+      repartitionParType(),
+      compterUtilisateurs()
+    ]);
+
+    return res.json({
+      signalements: globales,
+      par_commune: parCommune,
+      par_type: parType,
+      utilisateurs
+    });
+  } catch (err) {
+    console.error('Erreur statistiques admin:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+}
+
+module.exports = {
+  validerSignalement,
+  inValiderSignalement,
+  listerUtilisateurs,
+  detailUtilisateur,
+  listerSignalements,
+  statistiques
+};

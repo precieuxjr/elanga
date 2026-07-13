@@ -136,6 +136,60 @@ async function repartitionParType() {
   return rows;
 }
 
+// Liste complete des signalements (tous statuts), pour l'onglet admin
+// "Signalements" - avec commune, type, auteur et photo. Filtre optionnel
+// par statut et/ou commune.
+async function listerPourAdmin({ statut, commune_id } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (statut) {
+    conditions.push('s.statut = ?');
+    params.push(statut);
+  }
+  if (commune_id) {
+    conditions.push('co.commune_id = ?');
+    params.push(commune_id);
+  }
+
+  const clauseOu = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [rows] = await pool.execute(
+    `SELECT s.id, s.date_signale, s.heure_signale, s.date_analyse, s.heure_analyse,
+            s.statut, s.description,
+            t.nom AS type_signalement,
+            co.longitude, co.latitude,
+            c.nom AS commune,
+            u.id AS utilisateur_id, u.nom AS utilisateur_nom, u.postnom AS utilisateur_postnom,
+            u.prenom AS utilisateur_prenom, u.pseudo AS utilisateur_pseudo,
+            p.lien AS photo_lien
+     FROM signalements s
+     JOIN types_signalement t ON t.id = s.type_signalement_id
+     JOIN coordonnees co ON co.id = s.coordonnee_id
+     JOIN communes c ON c.id = co.commune_id
+     JOIN utilisateurs u ON u.id = s.utilisateur_id
+     LEFT JOIN photos p ON p.signalement_id = s.id
+     ${clauseOu}
+     ORDER BY s.date_signale DESC, s.heure_signale DESC`,
+    params
+  );
+  return rows;
+}
+
+// Repartition des signalements par commune - utilisee pour le graphique
+// "signalements par commune" du tableau de bord admin.
+async function statistiquesParCommune() {
+  const [rows] = await pool.execute(
+    `SELECT c.nom AS commune, COUNT(s.id) AS total
+     FROM communes c
+     LEFT JOIN coordonnees co ON co.commune_id = c.id
+     LEFT JOIN signalements s ON s.coordonnee_id = co.id
+     GROUP BY c.id, c.nom
+     ORDER BY total DESC`
+  );
+  return rows;
+}
+
 module.exports = {
   listerParUtilisateur,
   statistiquesParUtilisateur,
@@ -144,6 +198,8 @@ module.exports = {
   listerTousValides,
   changerStatut,
   statistiquesGlobales,
-  repartitionParType
+  repartitionParType,
+  listerPourAdmin,
+  statistiquesParCommune
 };
 
