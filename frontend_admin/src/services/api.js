@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-// Instance Axios unique. Aucune vue n'appelle axios ou une URL backend
-// directement : tout passe par le dossier "services".
+// Construction de l'URL de base en s'assurant qu'elle se termine par '/api'
+const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const baseURL = base.endsWith('/api') ? base : `${base.replace(/\/$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  baseURL: baseURL
 });
 
 api.interceptors.request.use((config) => {
