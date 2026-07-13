@@ -1,0 +1,22 @@
+# Environnement
+.env
+.env.*
+!.env.example
+
+# Dépendances
+node_modules/
+
+# Fichiers uploadés
+uploads/
+
+# Logs
+logs/
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
