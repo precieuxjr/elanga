@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { creerUtilisateur, creerAdministrateur, trouverParEmail } = require('../models/utilisateurModel');
 const { genererToken } = require('../utils/jwt');
 

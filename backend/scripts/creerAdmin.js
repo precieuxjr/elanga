@@ -25,8 +25,7 @@
  *   set ADMIN_PASSWORD=MonMotDePasse123   (PowerShell : $env:ADMIN_PASSWORD="...")
  *   npm run creer-admin -- --nom=Kabeya --postnom=Mbuyi --prenom=Alice --naissance=1990-05-12 --sexe=F --email=admin@elanga.cd
  */
-
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const pool = require('../config/db');
