@@ -1,11 +1,15 @@
 import axios from 'axios';
 
-// Instance Axios unique. Aucune page/vue ne doit appeler axios ou une URL
-// backend directement : tout passe par le dossier "services".
+// Construction de la baseURL avec '/api' automatiquement ajouté
+const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Si la base ne contient pas '/api' à la fin, on l'ajoute
+const baseURL = base.endsWith('/api') ? base : `${base}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  baseURL: baseURL
 });
 
+// Le reste de votre code (intercepteurs) reste inchangé
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ecokin_token');
   if (token) {
