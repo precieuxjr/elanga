@@ -44,12 +44,18 @@ onMounted(async () => {
 // marqueur au bon endroit une fois le signalement valide.
 function demanderPosition() {
   if (!navigator.geolocation) {
-    localisationErreur.value = "La geolocalisation n'est pas disponible sur cet appareil.";
+    localisationErreur.value = "Géolocalisation non supportée.";
     return;
   }
 
   localisationEnCours.value = true;
   localisationErreur.value = '';
+
+  const options = {
+    enableHighAccuracy: true, // Crucial pour la précision
+    timeout: 20000,          // Augmenté à 20s
+    maximumAge: 0            // Force une nouvelle position
+  };
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -59,11 +65,22 @@ function demanderPosition() {
       };
       localisationEnCours.value = false;
     },
-    () => {
-      localisationErreur.value = 'Position refusee ou indisponible. Autorisez la localisation puis reessayez.';
+    (err) => {
       localisationEnCours.value = false;
+      // Diagnostic précis de l'erreur
+      switch(err.code) {
+        case err.PERMISSION_DENIED:
+          localisationErreur.value = "Accès refusé. Veuillez autoriser la position dans les réglages.";
+          break;
+        case err.POSITION_UNAVAILABLE:
+          localisationErreur.value = "Position indisponible.";
+          break;
+        case err.TIMEOUT:
+          localisationErreur.value = "Le délai de localisation a expiré. Réessayez à l'extérieur.";
+          break;
+      }
     },
-    { enableHighAccuracy: true, timeout: 10000 }
+    options
   );
 }
 

@@ -53,12 +53,17 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
+  
+  // Redirection si accès privé non autorisé
   if (!to.meta.public && !authStore.estConnecte) {
     return next({ name: 'connexion' });
   }
+  
+  // Redirection si déjà connecté et tentative d'accès à login/inscription
   if (to.meta.public && authStore.estConnecte && (to.name === 'connexion' || to.name === 'inscription')) {
     return next({ name: 'tableau-de-bord' });
   }
+  
   next();
 });
 
