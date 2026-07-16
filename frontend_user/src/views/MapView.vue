@@ -11,8 +11,13 @@ const marqueurs = new Map(); // id -> L.Marker
 let handlerNouveau = null;
 let handlerRetire = null;
 
-// Icone par defaut de Leaflet (les images ne se chargent pas via bundler
-// sans cette correction).
+// Définition des limites de Kinshasa pour restreindre la zone de navigation
+const limitesKinshasa = L.latLngBounds(
+  L.latLng(-4.600, 15.150), // Sud-Ouest
+  L.latLng(-4.150, 15.600)  // Nord-Est
+);
+
+// Icone par défaut de Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -21,7 +26,7 @@ L.Icon.Default.mergeOptions({
 });
 
 function ajouterMarqueur(s) {
-  if (marqueurs.has(s.id)) return; // deja present, evite les doublons visuels
+  if (marqueurs.has(s.id)) return;
   const marqueur = L.marker([s.latitude, s.longitude])
     .bindPopup(`<strong>${s.type_signalement}</strong><br/>${s.date_signale || ''}`)
     .addTo(map);
@@ -37,13 +42,19 @@ function retirerMarqueur(id) {
 }
 
 onMounted(async () => {
-  // Centre par defaut : Kinshasa
-  map = L.map(mapContainer.value).setView([-4.325, 15.322], 11);
+  // Initialisation avec contraintes de limites et de zoom
+  map = L.map(mapContainer.value, {
+    maxBounds: limitesKinshasa,
+    minZoom: 10,
+    maxZoom: 18
+  }).setView([-4.325, 15.322], 11);
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors',
+    bounds: limitesKinshasa // Limite aussi le chargement des tuiles
   }).addTo(map);
 
-  // 1. Chargement initial : tous les signalements deja valides.
+  // 1. Chargement initial
   try {
     const data = await signalementService.getCarte();
     data.signalements.forEach(ajouterMarqueur);
@@ -51,8 +62,7 @@ onMounted(async () => {
     console.error('Erreur chargement carte:', e);
   }
 
-  // 2. Synchronisation temps reel : un nouveau marqueur apparait des qu'un
-  // admin valide un signalement, chez tous les clients connectes.
+  // 2. Synchronisation temps réel
   const socket = socketService.getSocket() || socketService.connecterSocket();
   if (socket) {
     handlerNouveau = (s) => ajouterMarqueur(s);
@@ -76,8 +86,8 @@ onUnmounted(() => {
   <div>
     <h1 class="text-xl font-semibold text-gray-800 mb-1">Carte des signalements</h1>
     <p class="text-sm text-gray-500 mb-4">
-      Tous les incidents deja valides par un administrateur. Verifiez cette carte
-      avant de signaler un nouvel incident, pour eviter les doublons.
+      Tous les incidents déjà validés par un administrateur. Vérifiez cette carte
+      avant de signaler un nouvel incident, pour éviter les doublons.
     </p>
     <div ref="mapContainer" class="w-full h-[520px] rounded-xl shadow-sm overflow-hidden"></div>
   </div>

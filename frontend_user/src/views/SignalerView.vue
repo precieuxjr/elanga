@@ -167,15 +167,27 @@ async function soumettre() {
           <option v-for="t in types" :key="t.id" :value="t.id">{{ t.nom }}</option>
         </select>
       </div>
-
       <div>
-        <label class="text-sm text-gray-600">Commune</label>
-        <select v-model="formulaire.commune_id" required
-                class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-          <option value="" disabled>Choisir...</option>
-          <option v-for="c in communes" :key="c.id" :value="c.id">{{ c.nom }}</option>
-        </select>
-      </div>
+  <label class="block text-sm font-semibold text-gray-700 mb-1">
+    Commune concernée
+  </label>
+  
+  <select 
+    v-model="formulaire.commune_id" 
+    required
+    class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-all duration-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none appearance-none"
+  >
+    <option value="" disabled selected>Sélectionnez votre commune...</option>
+    <option v-for="c in communes" :key="c.id" :value="c.id" class="py-2">
+      {{ c.nom }}
+    </option>
+  </select>
+
+  <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">
+    <span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>
+    Votre localisation sera vérifiée automatiquement lors de l'envoi.
+  </p>
+</div>
 
       <div>
         <label class="text-sm text-gray-600">Description (optionnel)</label>

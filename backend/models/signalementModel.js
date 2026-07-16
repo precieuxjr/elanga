@@ -36,7 +36,15 @@ async function statistiquesParUtilisateur(utilisateurId) {
 }
 
 async function creerSignalement(utilisateurId, data) {
-  const { type_signalement_id, description, longitude, latitude, commune_id, photo } = data;
+  const {
+    type_signalement_id,
+    description,
+    longitude,
+    latitude,
+    commune_id,
+    photo,
+    commune_coherente = null // true/false/null, calcule par le controller via geoCoherence
+  } = data;
 
   const [coordResult] = await pool.execute(
     `INSERT INTO coordonnees (longitude, latitude, commune_id) VALUES (?, ?, ?)`,
@@ -45,9 +53,9 @@ async function creerSignalement(utilisateurId, data) {
 
   const [result] = await pool.execute(
     `INSERT INTO signalements
-      (date_signale, heure_signale, statut, description, type_signalement_id, utilisateur_id, coordonnee_id)
-     VALUES (CURDATE(), CURTIME(), 'EN_COURS', ?, ?, ?, ?)`,
-    [description || null, type_signalement_id, utilisateurId, coordResult.insertId]
+      (date_signale, heure_signale, statut, description, type_signalement_id, utilisateur_id, coordonnee_id, commune_coherente)
+     VALUES (CURDATE(), CURTIME(), 'EN_COURS', ?, ?, ?, ?, ?)`,
+    [description || null, type_signalement_id, utilisateurId, coordResult.insertId, commune_coherente]
   );
 
   // La photo prise sur le terrain est rattachee au signalement (relation
@@ -156,7 +164,7 @@ async function listerPourAdmin({ statut, commune_id } = {}) {
 
   const [rows] = await pool.execute(
     `SELECT s.id, s.date_signale, s.heure_signale, s.date_analyse, s.heure_analyse,
-            s.statut, s.description,
+            s.statut, s.description, s.commune_coherente,
             t.nom AS type_signalement,
             co.longitude, co.latitude,
             c.nom AS commune,
@@ -170,26 +178,40 @@ async function listerPourAdmin({ statut, commune_id } = {}) {
      JOIN utilisateurs u ON u.id = s.utilisateur_id
      LEFT JOIN photos p ON p.signalement_id = s.id
      ${clauseOu}
-     ORDER BY s.date_signale DESC, s.heure_signale DESC`,
+     ORDER BY (s.commune_coherente = 0) DESC, s.date_signale DESC, s.heure_signale DESC`,
     params
   );
   return rows;
 }
-
+/**
+ * Statistiques croisées : Ville > Commune > Nombre de signalements.
+ * C'est cette fonction qui permettra à votre admin de voir la répartition géographique.
+ */
+async function statistiquesParVilleEtCommune() {
+  const [rows] = await pool.execute(
+    `SELECT v.nom AS ville, c.nom AS commune, COUNT(s.id) AS total
+     FROM villes v
+     JOIN communes c ON c.ville_id = v.id
+     JOIN coordonnees co ON co.commune_id = c.id
+     JOIN signalements s ON s.coordonnee_id = co.id
+     GROUP BY v.nom, c.nom
+     ORDER BY v.nom ASC, total DESC`
+  );
+  return rows;
+}
 // Repartition des signalements par commune - utilisee pour le graphique
-// "signalements par commune" du tableau de bord admin.
+// "signalements par commune" du tableau de bord admin.// Fonction pour les stats par commune (déjà présente dans votre code)
 async function statistiquesParCommune() {
   const [rows] = await pool.execute(
     `SELECT c.nom AS commune, COUNT(s.id) AS total
      FROM communes c
-     LEFT JOIN coordonnees co ON co.commune_id = c.id
-     LEFT JOIN signalements s ON s.coordonnee_id = co.id
+     JOIN coordonnees co ON co.commune_id = c.id
+     JOIN signalements s ON s.coordonnee_id = co.id
      GROUP BY c.id, c.nom
      ORDER BY total DESC`
   );
   return rows;
 }
-
 module.exports = {
   listerParUtilisateur,
   statistiquesParUtilisateur,
@@ -200,6 +222,6 @@ module.exports = {
   statistiquesGlobales,
   repartitionParType,
   listerPourAdmin,
-  statistiquesParCommune
+  statistiquesParCommune,
+  statistiquesParVilleEtCommune // Ajoutez cette exportation
 };
-
