@@ -97,7 +97,16 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   const room = `user_${socket.utilisateur.id}`;
   socket.join(room);
-  console.log(`Client connecté (socket ${socket.id}) -> room ${room}`);
+
+  // Les administrateurs rejoignent en plus une room commune 'admins',
+  // utilisee pour diffuser les notifications de nouveaux signalements
+  // (cf userController.ajouterSignalement -> io.to('admins').emit(...)).
+  if (socket.utilisateur.role === 'ADMINISTRATEUR') {
+    socket.join('admins');
+    console.log(`Client connecté (socket ${socket.id}) -> room ${room} + room admins`);
+  } else {
+    console.log(`Client connecté (socket ${socket.id}) -> room ${room}`);
+  }
 
   socket.on('disconnect', () => {
     console.log(`Client déconnecté: ${socket.id}`);

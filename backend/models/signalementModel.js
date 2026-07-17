@@ -43,7 +43,7 @@ async function creerSignalement(utilisateurId, data) {
     latitude,
     commune_id,
     photo,
-    commune_coherente = null // true/false/null, calcule par le controller via geoCoherence
+    commune_coherente = null // true/false/null, calcule par le controller
   } = data;
 
   const [coordResult] = await pool.execute(
@@ -70,17 +70,23 @@ async function creerSignalement(utilisateurId, data) {
   return result.insertId;
 }
 
-// Signalement complet, avec proprietaire (utile pour cibler la notification
-// socket au bon citoyen apres changement de statut).
+// Signalement complet, avec proprietaire + commune + nom du citoyen.
+// Utilise pour cibler la notification socket au bon citoyen apres
+// changement de statut, ET pour la notification temps reel envoyee aux
+// administrateurs a la creation d'un signalement.
 async function obtenirParId(id) {
   const [rows] = await pool.execute(
     `SELECT s.id, s.date_signale, s.heure_signale, s.date_analyse, s.heure_analyse,
-            s.statut, s.description, s.utilisateur_id,
+            s.statut, s.description, s.utilisateur_id, s.commune_coherente,
             t.nom AS type_signalement,
-            c.longitude, c.latitude
+            c.longitude, c.latitude,
+            com.nom AS commune,
+            u.prenom AS utilisateur_prenom, u.nom AS utilisateur_nom
      FROM signalements s
      JOIN types_signalement t ON t.id = s.type_signalement_id
      JOIN coordonnees c ON c.id = s.coordonnee_id
+     JOIN communes com ON com.id = c.commune_id
+     JOIN utilisateurs u ON u.id = s.utilisateur_id
      WHERE s.id = ?
      LIMIT 1`,
     [id]
@@ -94,10 +100,14 @@ async function listerTousValides() {
   const [rows] = await pool.execute(
     `SELECT s.id, s.date_signale, s.statut, s.description,
             t.nom AS type_signalement,
-            c.longitude, c.latitude
+            c.longitude, c.latitude,
+            com.nom AS commune,
+            p.lien AS photo_lien
      FROM signalements s
      JOIN types_signalement t ON t.id = s.type_signalement_id
      JOIN coordonnees c ON c.id = s.coordonnee_id
+     JOIN communes com ON com.id = c.commune_id
+     LEFT JOIN photos p ON p.signalement_id = s.id
      WHERE s.statut = 'VALIDE'
      ORDER BY s.date_signale DESC`
   );
@@ -183,6 +193,7 @@ async function listerPourAdmin({ statut, commune_id } = {}) {
   );
   return rows;
 }
+
 /**
  * Statistiques croisées : Ville > Commune > Nombre de signalements.
  * C'est cette fonction qui permettra à votre admin de voir la répartition géographique.
@@ -199,8 +210,9 @@ async function statistiquesParVilleEtCommune() {
   );
   return rows;
 }
+
 // Repartition des signalements par commune - utilisee pour le graphique
-// "signalements par commune" du tableau de bord admin.// Fonction pour les stats par commune (déjà présente dans votre code)
+// "signalements par commune" du tableau de bord admin.
 async function statistiquesParCommune() {
   const [rows] = await pool.execute(
     `SELECT c.nom AS commune, COUNT(s.id) AS total
@@ -212,6 +224,7 @@ async function statistiquesParCommune() {
   );
   return rows;
 }
+
 module.exports = {
   listerParUtilisateur,
   statistiquesParUtilisateur,
@@ -223,5 +236,5 @@ module.exports = {
   repartitionParType,
   listerPourAdmin,
   statistiquesParCommune,
-  statistiquesParVilleEtCommune // Ajoutez cette exportation
+  statistiquesParVilleEtCommune
 };

@@ -1,5 +1,10 @@
 const { trouverParId } = require('../models/utilisateurModel');
-const { listerParUtilisateur, statistiquesParUtilisateur, creerSignalement } = require('../models/signalementModel');
+const {
+  listerParUtilisateur,
+  statistiquesParUtilisateur,
+  creerSignalement,
+  obtenirParId: obtenirSignalementParId
+} = require('../models/signalementModel');
 const { trouverParId: trouverCommuneParId } = require('../models/communeModel');
 const axios = require('axios');
 
@@ -106,6 +111,17 @@ async function ajouterSignalement(req, res) {
       photo,
       commune_coherente: coherent
     });
+
+    // 5. Notifie en temps reel tous les administrateurs connectes (room
+    // 'admins', rejointe automatiquement au handshake socket - cf server.js).
+    try {
+      const signalementComplet = await obtenirSignalementParId(id);
+      req.app.get('io').to('admins').emit('admin:nouveau_signalement', signalementComplet);
+    } catch (e) {
+      // Un probleme de notification temps reel ne doit jamais faire echouer
+      // la creation du signalement elle-meme.
+      console.error('Erreur emission socket admin:nouveau_signalement:', e);
+    }
 
     return res.status(201).json({
       message: 'Signalement enregistré.',
