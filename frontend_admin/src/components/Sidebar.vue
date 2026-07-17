@@ -20,9 +20,6 @@ const liens = [
 const menuOuvert = ref(false);
 
 // --- Notifications : signalements EN_COURS en attente de validation ---
-// Version "fonctionne des maintenant" : sondage regulier de la meme route
-// admin que ReportsView.vue utilise deja. Peut etre remplacee/complementee
-// par un vrai push socket plus tard sans changer le template.
 const notifications = ref([]);
 const chargementNotifs = ref(false);
 const dropdownOuvert = ref(false);
@@ -47,11 +44,8 @@ function ouvrirSignalements() {
 }
 
 onMounted(() => {
-  // 1. Chargement initial de la liste.
   chargerNotifications();
 
-  // 2. Push temps reel : des qu'un citoyen cree un signalement, le
-  // backend emet 'admin:nouveau_signalement' vers la room 'admins'.
   const socket = socketService.getSocket() || socketService.connecterSocket();
   if (socket) {
     handlerNouveauSignalement = (s) => {
@@ -61,10 +55,9 @@ onMounted(() => {
     socket.on('admin:nouveau_signalement', handlerNouveauSignalement);
   }
 
-  // 3. Sondage de secours (au cas ou le socket se deconnecte un instant),
-  // espace car le push socket couvre deja le cas normal.
   intervalleNotifs = setInterval(chargerNotifications, 60000); // 60s
 });
+
 onUnmounted(() => {
   if (intervalleNotifs) clearInterval(intervalleNotifs);
   const socket = socketService.getSocket();
@@ -93,33 +86,25 @@ function seDeconnecter() {
 
 <template>
   <!-- BARRE MOBILE : fixe en haut, visible uniquement sous md -->
-  <header class="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-16
-                 bg-sidebar/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/10">
+  <header class="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-16 bg-sidebar/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/10">
     <div class="flex items-center gap-2">
       <LogoElanga :size="28" />
       <p class="text-white font-semibold text-sm">ELANGA</p>
     </div>
     <div class="flex items-center gap-1">
-      <button
-        @click="dropdownOuvert = !dropdownOuvert"
-        class="relative w-10 h-10 flex items-center justify-center rounded-lg text-white/90 hover:bg-white/10 transition"
-        aria-label="Notifications"
-      >
+      <button @click="dropdownOuvert = !dropdownOuvert" class="relative w-10 h-10 flex items-center justify-center rounded-lg text-white/90 hover:bg-white/10 transition" aria-label="Notifications">
         <Bell :size="20" />
         <span v-if="notifications.length" class="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
           {{ notifications.length > 9 ? '9+' : notifications.length }}
         </span>
       </button>
-      <button
-        @click="menuOuvert = true"
-        class="w-10 h-10 flex items-center justify-center rounded-lg text-white/90 hover:bg-white/10 transition"
-        aria-label="Ouvrir le menu"
-      >
+      <button @click="menuOuvert = true" class="w-10 h-10 flex items-center justify-center rounded-lg text-white/90 hover:bg-white/10 transition" aria-label="Ouvrir le menu">
         <Menu :size="22" />
       </button>
     </div>
 
-    <!-- Dropdown notifications (mobile) -->
+    <!-- Dropdown notifications (mobile) : le header est fixed pleine largeur,
+         donc right-4 se refere au bord droit de l'ecran -> pas de debordement -->
     <Transition name="fondu">
       <div v-if="dropdownOuvert" class="absolute top-16 right-4 w-[calc(100vw-2rem)] max-w-sm
                   bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -150,11 +135,7 @@ function seDeconnecter() {
 
   <!-- OVERLAY MOBILE (menu burger) -->
   <Transition name="fondu">
-    <div
-      v-if="menuOuvert"
-      @click="menuOuvert = false"
-      class="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-    ></div>
+    <div v-if="menuOuvert" @click="menuOuvert = false" class="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"></div>
   </Transition>
 
   <!-- Ferme le dropdown notifications au clic en dehors -->
@@ -162,11 +143,7 @@ function seDeconnecter() {
 
   <!-- PANNEAU MOBILE : glassmorphique, coulisse depuis la gauche -->
   <Transition name="glisse">
-    <aside
-      v-if="menuOuvert"
-      class="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col
-             bg-sidebar/60 backdrop-blur-2xl backdrop-saturate-150 border-r border-white/10 shadow-2xl"
-    >
+    <aside v-if="menuOuvert" class="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col bg-sidebar/60 backdrop-blur-2xl backdrop-saturate-150 border-r border-white/10 shadow-2xl">
       <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
         <div class="flex items-center gap-2">
           <LogoElanga :size="32" />
@@ -175,11 +152,7 @@ function seDeconnecter() {
             <p class="text-xs text-slate-300 leading-tight">Espace administrateur</p>
           </div>
         </div>
-        <button
-          @click="menuOuvert = false"
-          class="w-9 h-9 flex items-center justify-center rounded-lg text-white/80 hover:bg-white/10 transition"
-          aria-label="Fermer le menu"
-        >
+        <button @click="menuOuvert = false" class="w-9 h-9 flex items-center justify-center rounded-lg text-white/80 hover:bg-white/10 transition" aria-label="Fermer le menu">
           <X :size="20" />
         </button>
       </div>
@@ -223,7 +196,7 @@ function seDeconnecter() {
     </aside>
   </Transition>
 
-  <!-- SIDEBAR DESKTOP : inchangee + cloche ajoutee dans la rangee utilisateur -->
+  <!-- SIDEBAR DESKTOP -->
   <aside class="hidden md:flex md:w-64 md:flex-shrink-0 bg-sidebar text-slate-300 flex-col shrink-0 min-h-screen">
     <div class="flex items-center gap-2 px-5 py-5 border-b border-slate-700/60">
       <LogoElanga :size="32" />
@@ -255,8 +228,18 @@ function seDeconnecter() {
           </span>
         </button>
 
+        <!--
+          FIX : left-0 au lieu de right-0.
+          Avec right-0, le bord droit du dropdown s'alignait sur la cloche
+          (~236px depuis le bord gauche de l'ecran) ; comme la boite fait 320px
+          (w-80) dans une sidebar de 256px (w-64), elle depassait d'environ 85px
+          a GAUCHE, hors de l'ecran -> coupee.
+          left-0 fait ouvrir la boite vers la DROITE, par-dessus le contenu,
+          ce qui tient toujours dans le viewport (>= 768px au breakpoint md).
+          max-w-[calc(100vw-2.5rem)] = securite pour les petits ecrans.
+        -->
         <Transition name="fondu">
-          <div v-if="dropdownOuvert" class="absolute top-11 right-0 w-80 z-50
+          <div v-if="dropdownOuvert" class="absolute top-11 left-0 w-80 max-w-[calc(100vw-2.5rem)] z-50
                       bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden text-left">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <p class="text-sm font-semibold text-gray-800">Signalements en attente</p>
@@ -314,7 +297,6 @@ function seDeconnecter() {
 <style scoped>
 .fondu-enter-active, .fondu-leave-active { transition: opacity 0.2s ease; }
 .fondu-enter-from, .fondu-leave-to { opacity: 0; }
-
 .glisse-enter-active, .glisse-leave-active { transition: transform 0.28s ease; }
 .glisse-enter-from, .glisse-leave-to { transform: translateX(-100%); }
 </style>
