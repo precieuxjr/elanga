@@ -26,6 +26,38 @@ const dropdownOuvert = ref(false);
 let intervalleNotifs = null;
 let handlerNouveauSignalement = null;
 
+// ---------------------------------------------------------------------------
+// FIX AFFICHAGE LAPTOP : le dropdown desktop n'est PLUS positionne en
+// "absolute" dans la sidebar. La sidebar fait w-64 (256px) et la boite w-80
+// (320px) : ancree a gauche ou a droite, elle depassait toujours d'un cote.
+// Desormais la boite est teleportee dans <body> et positionnee en "fixed"
+// a partir des coordonnees reelles de la cloche, avec un clamp sur 'left'
+// qui garantit qu'elle reste entierement visible dans le viewport.
+// ---------------------------------------------------------------------------
+const clocheDesktop = ref(null);
+const posDropdown = ref({ top: 0, left: 0 });
+
+function basculerDropdown() {
+  if (!dropdownOuvert.value && clocheDesktop.value) {
+    const r = clocheDesktop.value.getBoundingClientRect();
+    const largeur = Math.min(320, window.innerWidth - 16); // w-80, avec marge de securite
+    posDropdown.value = {
+      top: r.bottom + 8,
+      left: Math.max(8, Math.min(r.left, window.innerWidth - largeur - 8))
+    };
+  }
+  dropdownOuvert.value = !dropdownOuvert.value;
+}
+
+// La sidebar defile avec la page : le dropdown etant "fixed", on le ferme
+// au scroll / resize pour eviter qu'il ne flotte a une position obsolete.
+function fermerDropdown() { dropdownOuvert.value = false; }
+watch(dropdownOuvert, (ouvert) => {
+  const methode = ouvert ? 'addEventListener' : 'removeEventListener';
+  window[methode]('scroll', fermerDropdown, true);
+  window[methode]('resize', fermerDropdown);
+});
+
 async function chargerNotifications() {
   chargementNotifs.value = true;
   try {
@@ -64,6 +96,8 @@ onUnmounted(() => {
   if (socket && handlerNouveauSignalement) {
     socket.off('admin:nouveau_signalement', handlerNouveauSignalement);
   }
+  window.removeEventListener('scroll', fermerDropdown, true);
+  window.removeEventListener('resize', fermerDropdown);
 });
 
 // Ferme les menus/dropdowns a chaque changement de page.
@@ -103,8 +137,8 @@ function seDeconnecter() {
       </button>
     </div>
 
-    <!-- Dropdown notifications (mobile) : le header est fixed pleine largeur,
-         donc right-4 se refere au bord droit de l'ecran -> pas de debordement -->
+    <!-- Dropdown notifications (mobile) : inchange, il fonctionne deja
+         car le header fixed fait toute la largeur de l'ecran -->
     <Transition name="fondu">
       <div v-if="dropdownOuvert" class="absolute top-16 right-4 w-[calc(100vw-2rem)] max-w-sm
                   bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -138,8 +172,9 @@ function seDeconnecter() {
     <div v-if="menuOuvert" @click="menuOuvert = false" class="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"></div>
   </Transition>
 
-  <!-- Ferme le dropdown notifications au clic en dehors -->
-  <div v-if="dropdownOuvert" @click="dropdownOuvert = false" class="fixed inset-0 z-30"></div>
+  <!-- Ferme le dropdown notifications au clic en dehors (MOBILE uniquement ;
+       l'overlay desktop est dans le Teleport plus bas) -->
+  <div v-if="dropdownOuvert" @click="dropdownOuvert = false" class="md:hidden fixed inset-0 z-30"></div>
 
   <!-- PANNEAU MOBILE : glassmorphique, coulisse depuis la gauche -->
   <Transition name="glisse">
@@ -196,7 +231,7 @@ function seDeconnecter() {
     </aside>
   </Transition>
 
-  <!-- SIDEBAR DESKTOP -->
+  <!-- SIDEBAR DESKTOP : la cloche ne contient plus le dropdown (voir Teleport) -->
   <aside class="hidden md:flex md:w-64 md:flex-shrink-0 bg-sidebar text-slate-300 flex-col shrink-0 min-h-screen">
     <div class="flex items-center gap-2 px-5 py-5 border-b border-slate-700/60">
       <LogoElanga :size="32" />
@@ -216,55 +251,17 @@ function seDeconnecter() {
         </p>
         <p class="text-xs text-slate-400">Administrateur</p>
       </div>
-      <div class="relative">
-        <button
-          @click="dropdownOuvert = !dropdownOuvert"
-          class="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 transition"
-          aria-label="Notifications"
-        >
-          <Bell :size="18" />
-          <span v-if="notifications.length" class="absolute top-1 right-1 min-w-[14px] h-3.5 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-            {{ notifications.length > 9 ? '9+' : notifications.length }}
-          </span>
-        </button>
-
-        <!--
-          FIX : left-0 au lieu de right-0.
-          Avec right-0, le bord droit du dropdown s'alignait sur la cloche
-          (~236px depuis le bord gauche de l'ecran) ; comme la boite fait 320px
-          (w-80) dans une sidebar de 256px (w-64), elle depassait d'environ 85px
-          a GAUCHE, hors de l'ecran -> coupee.
-          left-0 fait ouvrir la boite vers la DROITE, par-dessus le contenu,
-          ce qui tient toujours dans le viewport (>= 768px au breakpoint md).
-          max-w-[calc(100vw-2.5rem)] = securite pour les petits ecrans.
-        -->
-        <Transition name="fondu">
-          <div v-if="dropdownOuvert" class="absolute top-11 left-0 w-80 max-w-[calc(100vw-2.5rem)] z-50
-                      bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden text-left">
-            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <p class="text-sm font-semibold text-gray-800">Signalements en attente</p>
-              <span class="text-xs text-gray-400">{{ notifications.length }}</span>
-            </div>
-            <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
-              <p v-if="!notifications.length" class="text-xs text-gray-400 text-center py-6">Rien en attente pour le moment.</p>
-              <button
-                v-for="n in notifications.slice(0, 8)" :key="n.id"
-                @click="ouvrirSignalements"
-                class="w-full text-left px-4 py-3 hover:bg-gray-50 transition"
-              >
-                <p class="text-sm font-medium text-gray-800">{{ n.type_signalement }}</p>
-                <p class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin :size="11" /> {{ n.commune }}</p>
-                <p class="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
-                  <Clock :size="11" /> {{ n.date_signale }} — {{ n.utilisateur_prenom }} {{ n.utilisateur_nom }}
-                </p>
-              </button>
-            </div>
-            <button @click="ouvrirSignalements" class="w-full text-center text-xs font-semibold text-primary-600 py-2.5 hover:bg-primary-50 transition">
-              Voir tous les signalements
-            </button>
-          </div>
-        </Transition>
-      </div>
+      <button
+        ref="clocheDesktop"
+        @click="basculerDropdown"
+        class="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-300 hover:bg-slate-800 transition"
+        aria-label="Notifications"
+      >
+        <Bell :size="18" />
+        <span v-if="notifications.length" class="absolute top-1 right-1 min-w-[14px] h-3.5 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+          {{ notifications.length > 9 ? '9+' : notifications.length }}
+        </span>
+      </button>
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-1">
@@ -292,6 +289,49 @@ function seDeconnecter() {
       </button>
     </div>
   </aside>
+
+  <!--
+    DROPDOWN NOTIFICATIONS DESKTOP : teleporte dans <body>.
+    - "fixed" + coordonnees mesurees sur la cloche -> jamais coupe par la
+      sidebar ni par un parent en overflow-hidden ;
+    - 'left' est clampe dans basculerDropdown() -> la boite reste
+      entierement visible meme sur un petit ecran de laptop.
+  -->
+  <Teleport to="body">
+    <!-- Clic en dehors (desktop uniquement) -->
+    <div v-if="dropdownOuvert" @click="dropdownOuvert = false" class="hidden md:block fixed inset-0 z-[55]"></div>
+
+    <Transition name="fondu">
+      <div
+        v-if="dropdownOuvert"
+        class="hidden md:block fixed z-[60] w-80
+               bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden text-left"
+        :style="{ top: posDropdown.top + 'px', left: posDropdown.left + 'px' }"
+      >
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <p class="text-sm font-semibold text-gray-800">Signalements en attente</p>
+          <span class="text-xs text-gray-400">{{ notifications.length }}</span>
+        </div>
+        <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+          <p v-if="!notifications.length" class="text-xs text-gray-400 text-center py-6">Rien en attente pour le moment.</p>
+          <button
+            v-for="n in notifications.slice(0, 8)" :key="n.id"
+            @click="ouvrirSignalements"
+            class="w-full text-left px-4 py-3 hover:bg-gray-50 transition"
+          >
+            <p class="text-sm font-medium text-gray-800">{{ n.type_signalement }}</p>
+            <p class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin :size="11" /> {{ n.commune }}</p>
+            <p class="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
+              <Clock :size="11" /> {{ n.date_signale }} — {{ n.utilisateur_prenom }} {{ n.utilisateur_nom }}
+            </p>
+          </button>
+        </div>
+        <button @click="ouvrirSignalements" class="w-full text-center text-xs font-semibold text-primary-600 py-2.5 hover:bg-primary-50 transition">
+          Voir tous les signalements
+        </button>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
