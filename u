@@ -1,0 +1,72 @@
+-- Migration : (1) retrait d'un signalement de la carte sans le supprimer +
+-- masquage auto des communes incoherentes, et (2) statut "collaborateur
+-- environnemental" avec workflow proposition -> feu vert -> rapport -> cloture.
+--
+-- mysql -u root -p elanga < migration_collaborateurs_et_visibilite_carte.sql
+
+-- --------------------------------------------------------------
+-- IDEE 1 : visibilite carte independante de la base de donnees
+-- --------------------------------------------------------------
+ALTER TABLE signalements
+  ADD COLUMN visible_carte TINYINT(1) NOT NULL DEFAULT 1
+  COMMENT 'Controle uniquement l affichage sur la carte partagee. 0 = retire de la carte par un admin, sans suppression en base.';
+
+-- Statut RESOLU : conclusion naturelle d'une collaboration terminee.
+-- Un signalement RESOLU (comme un INVALIDE) sort automatiquement de la
+-- carte, qui ne montre que statut = VALIDE.
+ALTER TABLE signalements
+  MODIFY COLUMN statut ENUM('EN_COURS','VALIDE','INVALIDE','RESOLU') NOT NULL DEFAULT 'EN_COURS';
+
+-- --------------------------------------------------------------
+-- IDEE 2 : role COLLABORATEUR + infos d'organisation
+-- --------------------------------------------------------------
+ALTER TABLE utilisateurs
+  MODIFY COLUMN role ENUM('CONTRIBUTEUR','ADMINISTRATEUR','COLLABORATEUR') NOT NULL DEFAULT 'CONTRIBUTEUR';
+
+ALTER TABLE utilisateurs
+  ADD COLUMN type_organisation ENUM('ONG','CENTRE','ECOLE','AUTRE') NULL
+    COMMENT 'Renseigne uniquement si role = COLLABORATEUR',
+  ADD COLUMN nom_organisation VARCHAR(150) NULL;
+
+-- Demande d'un contributeur pour devenir collaborateur (vetting par l'admin
+-- avant d'accorder le role, on ne peut pas se declarer "ONG" tout seul).
+CREATE TABLE demandes_collaborateur (
+  id INT NOT NULL AUTO_INCREMENT,
+  utilisateur_id INT NOT NULL,
+  type_organisation ENUM('ONG','CENTRE','ECOLE','AUTRE') NOT NULL,
+  nom_organisation VARCHAR(150) NOT NULL,
+  justification TEXT NULL,
+  statut ENUM('EN_ATTENTE','ACCEPTEE','REFUSEE') NOT NULL DEFAULT 'EN_ATTENTE',
+  administrateur_id INT NULL,
+  date_demande TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  date_decision TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  KEY utilisateur_id (utilisateur_id),
+  KEY administrateur_id (administrateur_id),
+  CONSTRAINT demandes_collaborateur_ibfk_1 FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs (id) ON DELETE CASCADE,
+  CONSTRAINT demandes_collaborateur_ibfk_2 FOREIGN KEY (administrateur_id) REFERENCES utilisateurs (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Le coeur du workflow : un collaborateur se propose sur un signalement,
+-- l'admin donne le feu vert, le collaborateur envoie un rapport, l'admin
+-- cloture (-> signalement RESOLU).
+CREATE TABLE collaborations (
+  id INT NOT NULL AUTO_INCREMENT,
+  signalement_id INT NOT NULL,
+  collaborateur_id INT NOT NULL,
+  message TEXT NOT NULL COMMENT 'Proposition initiale du collaborateur',
+  statut ENUM('EN_ATTENTE','ACCEPTEE','REFUSEE','RAPPORT_ENVOYE','CLOTUREE') NOT NULL DEFAULT 'EN_ATTENTE',
+  administrateur_id INT NULL COMMENT 'Admin ayant traite la proposition/le rapport',
+  date_proposition TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  date_decision TIMESTAMP NULL,
+  rapport TEXT NULL,
+  date_rapport TIMESTAMP NULL,
+  date_cloture TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  KEY signalement_id (signalement_id),
+  KEY collaborateur_id (collaborateur_id),
+  KEY administrateur_id (administrateur_id),
+  CONSTRAINT collaborations_ibfk_1 FOREIGN KEY (signalement_id) REFERENCES signalements (id) ON DELETE CASCADE,
+  CONSTRAINT collaborations_ibfk_2 FOREIGN KEY (collaborateur_id) REFERENCES utilisateurs (id) ON DELETE CASCADE,
+  CONSTRAINT collaborations_ibfk_3 FOREIGN KEY (administrateur_id) REFERENCES utilisateurs (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
