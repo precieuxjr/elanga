@@ -7,6 +7,7 @@ const adminRoutes = require('./adminRoutes');
 const signalementRoutes = require('./signalementRoutes');
 const referenceRoutes = require('./referenceRoutes');
 const publicRoutes = require('./publicRoutes');
+const collaborationRoutes = require('./Collaborationroutes');
 
 // Toutes les routes de l'API sont centralisees ici, puis montees
 // une seule fois dans server.js sous le prefixe /api.
@@ -16,5 +17,9 @@ router.use('/admin', adminRoutes);
 router.use('/signalements', signalementRoutes);
 router.use('/reference', referenceRoutes);
 router.use('/public', publicRoutes);
+
+// collaborationRoutes definit deja ses chemins complets en interne
+// (/collaborateur/..., /admin/...), donc pas de prefixe ici.
+router.use(collaborationRoutes);
 
 module.exports = router;

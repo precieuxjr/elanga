@@ -77,16 +77,18 @@ async function creerSignalement(utilisateurId, data) {
 async function obtenirParId(id) {
   const [rows] = await pool.execute(
     `SELECT s.id, s.date_signale, s.heure_signale, s.date_analyse, s.heure_analyse,
-            s.statut, s.description, s.utilisateur_id, s.commune_coherente,
+            s.statut, s.description, s.utilisateur_id, s.commune_coherente, s.visible_carte,
             t.nom AS type_signalement,
             c.longitude, c.latitude,
             com.nom AS commune,
-            u.prenom AS utilisateur_prenom, u.nom AS utilisateur_nom
+            u.prenom AS utilisateur_prenom, u.nom AS utilisateur_nom,
+            p.lien AS photo_lien
      FROM signalements s
      JOIN types_signalement t ON t.id = s.type_signalement_id
      JOIN coordonnees c ON c.id = s.coordonnee_id
      JOIN communes com ON com.id = c.commune_id
      JOIN utilisateurs u ON u.id = s.utilisateur_id
+     LEFT JOIN photos p ON p.signalement_id = s.id
      WHERE s.id = ?
      LIMIT 1`,
     [id]
@@ -95,7 +97,11 @@ async function obtenirParId(id) {
 }
 
 // Tous les signalements VALIDE, visibles par tout citoyen connecte sur la
-// carte generale, afin d'eviter qu'il ne signale un incident deja connu.
+// carte generale. Exclut : ceux retires manuellement par un admin
+// (visible_carte = 0, idee "retirer de la carte sans supprimer") et ceux
+// dont la commune declaree est incoherente avec le GPS (commune_coherente
+// = 0). Un signalement non-verifiable (commune_coherente NULL) reste
+// affiche, par prudence, plutot que de masquer par defaut.
 async function listerTousValides() {
   const [rows] = await pool.execute(
     `SELECT s.id, s.date_signale, s.statut, s.description,
@@ -109,9 +115,57 @@ async function listerTousValides() {
      JOIN communes com ON com.id = c.commune_id
      LEFT JOIN photos p ON p.signalement_id = s.id
      WHERE s.statut = 'VALIDE'
+       AND s.visible_carte = 1
+       AND (s.commune_coherente IS NULL OR s.commune_coherente = 1)
      ORDER BY s.date_signale DESC`
   );
   return rows;
+}
+
+// Retire/restaure un signalement de la carte SANS toucher a son statut ni
+// le supprimer de la base. Renvoie le signalement complet pour la
+// notification socket (carte:marqueur_retire / carte:nouveau_marqueur).
+async function definirVisibiliteCarte(id, visible) {
+  await pool.execute(
+    `UPDATE signalements SET visible_carte = ? WHERE id = ?`,
+    [visible ? 1 : 0, id]
+  );
+  return obtenirParId(id);
+}
+
+// Signalements VALIDE proposes aux collaborateurs environnementaux : pas de
+// filtre visible_carte/commune_coherente ici, un collaborateur doit pouvoir
+// intervenir meme sur un signalement retire de la carte publique. On
+// indique en plus si une collaboration est deja acceptee dessus, pour
+// eviter que deux collaborateurs se marchent dessus sans le savoir.
+async function listerValidesPourCollaboration() {
+  const [rows] = await pool.execute(
+    `SELECT s.id, s.date_signale, s.description,
+            t.nom AS type_signalement,
+            c.longitude, c.latitude,
+            com.nom AS commune,
+            p.lien AS photo_lien,
+            col.statut AS collaboration_statut,
+            col.collaborateur_id AS collaboration_collaborateur_id
+     FROM signalements s
+     JOIN types_signalement t ON t.id = s.type_signalement_id
+     JOIN coordonnees c ON c.id = s.coordonnee_id
+     JOIN communes com ON com.id = c.commune_id
+     LEFT JOIN photos p ON p.signalement_id = s.id
+     LEFT JOIN collaborations col
+       ON col.signalement_id = s.id AND col.statut IN ('ACCEPTEE','RAPPORT_ENVOYE')
+     WHERE s.statut = 'VALIDE'
+     ORDER BY s.date_signale DESC`
+  );
+  return rows;
+}
+
+// Marque un signalement comme resolu (conclusion d'une collaboration
+// cloturee par l'admin). Sort automatiquement de la carte : listerTousValides
+// ne selectionne que statut = 'VALIDE'.
+async function marquerResolu(id) {
+  await pool.execute(`UPDATE signalements SET statut = 'RESOLU' WHERE id = ?`, [id]);
+  return obtenirParId(id);
 }
 
 // Changement de statut par un administrateur (validerSignalement /
@@ -231,6 +285,9 @@ module.exports = {
   creerSignalement,
   obtenirParId,
   listerTousValides,
+  definirVisibiliteCarte,
+  listerValidesPourCollaboration,
+  marquerResolu,
   changerStatut,
   statistiquesGlobales,
   repartitionParType,

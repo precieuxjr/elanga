@@ -56,5 +56,24 @@ async function soumettre() {
       Pas encore de compte ?
       <router-link :to="{ name: 'inscription' }" class="text-primary-600 font-medium">S'inscrire</router-link>
     </p>
+
+    <!-- Idee 2 : point d'entree pour les organisations (ONG, ecole, centre)
+         qui veulent rejoindre en tant que collaborateur environnemental.
+         Le compte est d'abord cree comme CONTRIBUTEUR classique ; le
+         parametre ?collaborateur=1 sert juste d'indice pour que
+         RegisterView.vue puisse, plus tard, adapter son message ou
+         pre-remplir la demande de statut collaborateur juste apres
+         l'inscription (POST /api/collaborateur/demande). -->
+    <div class="mt-6 pt-5 border-t border-gray-100 text-center">
+      <p class="text-xs text-gray-400">
+        Vous représentez une ONG, une école ou un centre environnemental ?
+      </p>
+      <router-link
+        :to="{ name: 'inscription', query: { collaborateur: '1' } }"
+        class="text-xs font-semibold text-primary-600 hover:text-primary-700 inline-block mt-1"
+      >
+        Rejoignez ELANGA en tant que collaborateur →
+      </router-link>
+    </div>
   </div>
 </template>
