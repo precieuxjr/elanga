@@ -43,7 +43,14 @@ const routes = [
     name: 'signaler',
     component: () => import('@/views/SignalerView.vue'),
     meta: { public: false }
-  }
+  },
+  // Ajoutez cet objet dans le tableau 'routes'
+{
+  path: '/devenir-collaborateur',
+  name: 'devenir-collaborateur',
+  component: () => import('@/views/DevenirCollaborateurView.vue'),
+  meta: { public: false }
+}
 ];
 
 const router = createRouter({

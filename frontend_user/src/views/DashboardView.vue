@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue';
 import { 
   AlertTriangle, CheckCircle2, XCircle, ListChecks, 
-  User, History, BarChart3 
-} from 'lucide-vue-next'; // Import de l'icône User
+  User, History, BarChart3, Briefcase // Ajout de l'icône Briefcase
+} from 'lucide-vue-next'; 
 import userService from '@/services/userService';
 import { useAuthStore } from '@/store/auth';
 
@@ -39,11 +39,30 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- Accès rapide vers la demande de collaboration -->
+    <div class="mb-8 p-4 bg-primary-50 border border-primary-100 rounded-2xl flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-white rounded-lg text-primary-600">
+          <Briefcase :size="20" />
+        </div>
+        <div>
+          <h3 class="font-semibold text-primary-900">Envie d'aller plus loin ?</h3>
+          <p class="text-sm text-primary-700">Devenez collaborateur pour contribuer activement.</p>
+        </div>
+      </div>
+      <router-link 
+        :to="{ name: 'devenir-collaborateur' }" 
+        class="bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition"
+      >
+        Postuler
+      </router-link>
+    </div>
+
     <p v-if="erreur" class="text-sm text-red-500 p-4 bg-red-50 rounded-lg">{{ erreur }}</p>
     <p v-if="chargement" class="text-sm text-gray-400">Chargement de vos données...</p>
 
     <template v-else>
-      <!-- Cartes de statistiques améliorées -->
+      <!-- Cartes de statistiques -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
           <div class="flex items-center gap-2 text-gray-500 mb-2">

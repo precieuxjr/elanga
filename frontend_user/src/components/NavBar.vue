@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   LogOut, LayoutDashboard, Map, Home, Newspaper, 
-  PlusCircle, Menu, X 
+  PlusCircle, Menu, X, Briefcase // Ajout de Briefcase
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/store/auth';
 import LogoEcoKin from './LogoEcoKin.vue';
@@ -64,6 +64,11 @@ function seDeconnecter() {
 
           <router-link :to="{ name: 'signaler' }" @click="fermerMenu" class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
             <PlusCircle :size="18" /> Signaler
+          </router-link>
+
+          <!-- Lien vers la page de demande de collaboration -->
+          <router-link :to="{ name: 'devenir-collaborateur' }" @click="fermerMenu" class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+            <Briefcase :size="18" /> Collaborer
           </router-link>
           
           <button @click="seDeconnecter" class="flex items-center gap-2 text-sm text-red-500 hover:text-red-600">
