@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { HeartHandshake, Clock, CheckCircle2, XCircle, Building2 } from 'lucide-vue-next';
 import { useAuthStore } from '@/store/auth';
-import collaborateurService from '@/services/collaborateurService';
+import collaborateurService from '@/services/collaborateurService.js';
 
 const authStore = useAuthStore();
 
