@@ -57,17 +57,8 @@ async function soumettre() {
       <router-link :to="{ name: 'inscription' }" class="text-primary-600 font-medium">S'inscrire</router-link>
     </p>
 
-    <!-- Idee 2 : point d'entree pour les organisations (ONG, ecole, centre).
-         Parcours en 2 etapes assume : inscription normale d'abord, puis
-         demande de statut collaborateur depuis /devenir-collaborateur une
-         fois connecte (cf DevenirCollaborateurView.vue). -->
-    <div class="mt-6 pt-5 border-t border-gray-100 text-center">
-      <p class="text-xs text-gray-400">
-        Vous représentez une ONG, une école ou un centre environnemental ?
-      </p>
-      <router-link :to="{ name: 'inscription' }" class="text-xs font-semibold text-primary-600 hover:text-primary-700 inline-block mt-1">
-        Inscrivez-vous, puis demandez le statut collaborateur →
-      </router-link>
-    </div>
+    <!-- Volontairement AUCUNE mention du statut collaborateur ici : cette
+         demarche n'est accessible qu'une fois connecte, via le lien
+         "Collaborer" dans NavBar.vue -> /devenir-collaborateur. -->
   </div>
 </template>
