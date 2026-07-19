@@ -4,9 +4,9 @@ import {
   Calendar, MapPin, Users, HeartHandshake, CheckCircle2, Clock,
   TrendingUp, Image as ImageIcon
 } from 'lucide-vue-next';
-import collaborateurService from '@/services/collaborateurService';
-import socketService from '@/services/socketService';
-import api from '@/services/api';
+import collaborateurService from '@/services/collaborateurService.js';
+import socketService from '@/services/socketService.js';
+import api from '@/services/api.js';
 
 const baseUrlBackend = (api.defaults.baseURL || '').replace(/\/api\/?$/, '');
 function lienPhoto(lien) { return lien ? `${baseUrlBackend}${lien}` : null; }
