@@ -1,5 +1,5 @@
 const demandeCollaborateurModel = require('../models/demandecollaborateur_model.js');
-const collaborationModel = require('../models/collaborationModel');
+const collaborationModel = require('../models/collaboration_Model.js');
 const signalementModel = require('../models/signalementModel');
 
 // POST /api/collaborateur/demande
