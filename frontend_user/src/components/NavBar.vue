@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   LogOut, LayoutDashboard, Map, Home, Newspaper, 
-  PlusCircle, Menu, X, Briefcase // Ajout de Briefcase
+  PlusCircle, Menu, X, HeartHandshake, Calendar
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/store/auth';
 import LogoEcoKin from './LogoEcoKin.vue';
@@ -66,9 +66,22 @@ function seDeconnecter() {
             <PlusCircle :size="18" /> Signaler
           </router-link>
 
-          <!-- Lien vers la page de demande de collaboration -->
-          <router-link :to="{ name: 'devenir-collaborateur' }" @click="fermerMenu" class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
-            <Briefcase :size="18" /> Collaborer
+          <router-link :to="{ name: 'evenements' }" @click="fermerMenu" class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+            <Calendar :size="18" /> Événements
+          </router-link>
+
+          <!-- Uniquement pour un contributeur "classique" -->
+          <router-link v-if="authStore.utilisateur?.role === 'CONTRIBUTEUR'"
+            :to="{ name: 'devenir-collaborateur' }" @click="fermerMenu"
+            class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+            <HeartHandshake :size="18" /> Devenir collaborateur
+          </router-link>
+
+          <!-- Uniquement pour un collaborateur deja valide -->
+          <router-link v-if="authStore.utilisateur?.role === 'COLLABORATEUR'"
+            :to="{ name: 'espace-collaborateur' }" @click="fermerMenu"
+            class="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+            <HeartHandshake :size="18" /> Espace collaborateur
           </router-link>
           
           <button @click="seDeconnecter" class="flex items-center gap-2 text-sm text-red-500 hover:text-red-600">

@@ -6,9 +6,10 @@ const router = express.Router();
 // (verifie dans adminRoutes.js : c'est le meme import chez toi).
 const { authentifier } = require('../middleware/authMiddleware');
 const estCollaborateur = require('../middleware/estcollaborateur');
-const uploadRapportCollaboration = require('../middleware/uploadRapportCollaboration');
+const uploadPhotoCollaboration = require('../middleware/Uploadphotocollaboration');
 const collaborateurController = require('../controllers/Collaborateurcontroller');
 const adminCollaborationController = require('../controllers/Admincollaborationcontroller');
+const evenementController = require('../controllers/Evenementcontroller');
 
 // Petit middleware autonome (ne depend d'aucun fichier existant inconnu) :
 // verifie que l'utilisateur authentifie est bien ADMINISTRATEUR.
@@ -27,7 +28,14 @@ router.get('/collaborateur/ma-demande', authentifier, collaborateurController.ma
 router.get('/collaborateur/signalements', authentifier, estCollaborateur, collaborateurController.listerSignalements);
 router.post('/collaborateur/signalements/:id/proposer', authentifier, estCollaborateur, collaborateurController.proposerSolution);
 router.get('/collaborateur/propositions', authentifier, estCollaborateur, collaborateurController.mesPropositions);
-router.post('/collaborateur/propositions/:id/rapport', authentifier, estCollaborateur, uploadRapportCollaboration, collaborateurController.envoyerRapport);
+router.post('/collaborateur/collaborations/:id/debuter', authentifier, estCollaborateur, uploadPhotoCollaboration('photo_avant'), collaborateurController.demarrerAssainissement);
+router.post('/collaborateur/propositions/:id/rapport', authentifier, estCollaborateur, uploadPhotoCollaboration('photo_apres'), collaborateurController.envoyerRapport);
+
+// ---- Evenements publics : visibles et rejoignables par tout utilisateur connecte ----
+router.get('/evenements', authentifier, evenementController.lister);
+router.get('/evenements/statistiques', authentifier, evenementController.statistiques);
+router.post('/evenements/:id/rejoindre', authentifier, evenementController.rejoindre);
+router.post('/evenements/:id/quitter', authentifier, evenementController.quitter);
 
 // ---- Admin : demandes de statut collaborateur ----
 router.get('/admin/demandes-collaborateur', authentifier, estAdmin, adminCollaborationController.listerDemandes);

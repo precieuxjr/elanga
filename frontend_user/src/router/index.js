@@ -44,13 +44,24 @@ const routes = [
     component: () => import('@/views/SignalerView.vue'),
     meta: { public: false }
   },
-  // Ajoutez cet objet dans le tableau 'routes'
-{
-  path: '/devenir-collaborateur',
-  name: 'devenir-collaborateur',
-  component: () => import('@/views/DevenirCollaborateurView.vue'),
-  meta: { public: false }
-}
+  {
+    path: '/devenir-collaborateur',
+    name: 'devenir-collaborateur',
+    component: () => import('@/views/DevenirCollaborateurView.vue'),
+    meta: { public: false }
+  },
+  {
+    path: '/evenements',
+    name: 'evenements',
+    component: () => import('@/views/EvenementsView.vue'),
+    meta: { public: false }
+  },
+  {
+    path: '/espace-collaborateur',
+    name: 'espace-collaborateur',
+    component: () => import('@/views/EspaceCollaborateurView.vue'),
+    meta: { public: false }
+  }
 ];
 
 const router = createRouter({

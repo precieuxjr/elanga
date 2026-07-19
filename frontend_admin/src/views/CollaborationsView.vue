@@ -112,7 +112,8 @@ function badgeStatutCollab(s) {
   return {
     EN_ATTENTE: 'bg-orange-50 text-orange-600',
     ACCEPTEE: 'bg-sky-50 text-sky-600',
-    RAPPORT_ENVOYE: 'bg-violet-50 text-violet-600',
+    ASSAINISSEMENT_EN_COURS: 'bg-violet-50 text-violet-600',
+    RAPPORT_ENVOYE: 'bg-amber-50 text-amber-600',
     CLOTUREE: 'bg-primary-50 text-primary-700',
     REFUSEE: 'bg-red-50 text-red-600'
   }[s] || 'bg-gray-100 text-gray-600';
@@ -120,7 +121,8 @@ function badgeStatutCollab(s) {
 function labelStatutCollab(s) {
   return {
     EN_ATTENTE: 'En attente de feu vert',
-    ACCEPTEE: "Feu vert donné — en cours d'intervention",
+    ACCEPTEE: 'Feu vert donné — pas encore démarré',
+    ASSAINISSEMENT_EN_COURS: "Assainissement en cours sur le terrain",
     RAPPORT_ENVOYE: 'Rapport reçu — à valider',
     CLOTUREE: 'Clôturée (résolu)',
     REFUSEE: 'Refusée'
@@ -256,10 +258,14 @@ const nbCollabsAttention = computed(() => collaborations.value.filter(c => ['EN_
           <div v-for="c in collaborations" :key="c.id" class="bg-white rounded-2xl shadow-sm p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="font-semibold text-gray-800 truncate">{{ c.type_signalement }}</p>
-                <p class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin :size="12" /> {{ c.commune }}</p>
+                <p class="font-semibold text-gray-800 truncate">{{ c.titre || c.type_signalement }}</p>
+                <p class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin :size="12" /> {{ c.commune }} — {{ c.type_signalement }}</p>
+                <p v-if="c.date_evenement" class="text-[11px] text-gray-400 mt-0.5">Prévu le {{ new Date(c.date_evenement).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) }}</p>
               </div>
-              <span :class="badgeStatutCollab(c.statut)" class="px-2 py-1 rounded-full text-[11px] font-semibold shrink-0 text-right">{{ labelStatutCollab(c.statut) }}</span>
+              <div class="text-right shrink-0">
+                <span :class="badgeStatutCollab(c.statut)" class="px-2 py-1 rounded-full text-[11px] font-semibold block">{{ labelStatutCollab(c.statut) }}</span>
+                <p class="text-[11px] text-gray-400 mt-1">{{ c.nb_participants || 0 }} participant(s)</p>
+              </div>
             </div>
 
             <p class="text-xs text-gray-500 mt-3">
