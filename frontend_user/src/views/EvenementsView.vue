@@ -4,7 +4,7 @@ import {
   Calendar, MapPin, Users, HeartHandshake, CheckCircle2, Clock,
   TrendingUp, Image as ImageIcon
 } from 'lucide-vue-next';
-import collaborateurService from '@/services/collaborateurservice.js';
+import collaborateurService from '@/services/Collaborateurservice.js';
 import socketService from '@/services/socketService.js';
 import api from '@/services/api.js';
 
