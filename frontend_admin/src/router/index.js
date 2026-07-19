@@ -41,7 +41,7 @@ const routes = [
   {
     path: '/collaborateurs',
     name: 'collaborateurs',
-    component: () => import('@/views/CollaborateursView.vue'), // Vérifiez bien le nom exact de votre fichier .vue
+    component: () => import('@/views/CollaborationsView.vue'), // Vérifiez bien le nom exact de votre fichier .vue
     meta: { public: false },
   },
 ];
