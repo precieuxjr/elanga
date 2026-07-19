@@ -53,7 +53,7 @@ const routes = [
   {
     path: '/evenements',
     name: 'evenements',
-    component: () => import('@/views/Evenementsview.vue'),
+    component: () => import('@/views/EvenementsView.vue'),
     meta: { public: false }
   },
   {
