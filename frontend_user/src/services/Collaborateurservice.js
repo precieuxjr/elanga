@@ -4,7 +4,9 @@ export default {
   // POST /api/collaborateur/demande
   async demander({ type_organisation, nom_organisation, justification }) {
     const { data } = await api.post('/collaborateur/demande', {
-      type_organisation, nom_organisation, justification
+      type_organisation,
+      nom_organisation,
+      justification,
     });
     return data;
   },
@@ -24,9 +26,14 @@ export default {
   // POST /api/collaborateur/signalements/:id/proposer
   // Cree un evenement d'assainissement : titre, date prevue, message.
   async proposerSolution(signalementId, { titre, date_evenement, message }) {
-    const { data } = await api.post(`/collaborateur/signalements/${signalementId}/proposer`, {
-      titre, date_evenement, message
-    });
+    const { data } = await api.post(
+      `/collaborateur/signalements/${signalementId}/proposer`,
+      {
+        titre,
+        date_evenement,
+        message,
+      }
+    );
     return data;
   },
 
@@ -41,9 +48,13 @@ export default {
   async demarrerAssainissement(collaborationId, fichierPhotoAvant) {
     const form = new FormData();
     form.append('photo_avant', fichierPhotoAvant);
-    const { data } = await api.post(`/collaborateur/collaborations/${collaborationId}/debuter`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const { data } = await api.post(
+      `/collaborateur/collaborations/${collaborationId}/debuter`,
+      form,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
     return data;
   },
 
@@ -53,9 +64,13 @@ export default {
     const form = new FormData();
     form.append('rapport', rapportTexte);
     form.append('photo_apres', fichierPhotoApres);
-    const { data } = await api.post(`/collaborateur/propositions/${collaborationId}/rapport`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const { data } = await api.post(
+      `/collaborateur/propositions/${collaborationId}/rapport`,
+      form,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
     return data;
   },
 
@@ -75,5 +90,5 @@ export default {
   async quitterEvenement(id) {
     const { data } = await api.post(`/evenements/${id}/quitter`);
     return data;
-  }
+  },
 };
