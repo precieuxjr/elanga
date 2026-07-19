@@ -4,7 +4,7 @@ import {
   MapPin, Clock, Camera, FileText, HeartHandshake, Users,
   CheckCircle2, XCircle, X
 } from 'lucide-vue-next';
-import collaborateurService from '@/services/collaborateurService';
+import collaborateurService from '@/services/Collaborateurservice.js';
 
 const ongletActif = ref('ouverts'); // 'ouverts' | 'mes-evenements'
 
