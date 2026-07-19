@@ -93,11 +93,14 @@ async function refuser(id, administrateurId) {
   return obtenirParId(id);
 }
 
-// Le collaborateur signale que le probleme est regle sur le terrain.
-async function envoyerRapport(id, rapport) {
+// Le collaborateur signale que le probleme est regle sur le terrain,
+// preuve a l'appui : une photo avant intervention et une apres.
+async function envoyerRapport(id, { rapport, photo_avant_lien, photo_apres_lien }) {
   await pool.execute(
-    `UPDATE collaborations SET statut = 'RAPPORT_ENVOYE', rapport = ?, date_rapport = NOW() WHERE id = ?`,
-    [rapport, id]
+    `UPDATE collaborations
+     SET statut = 'RAPPORT_ENVOYE', rapport = ?, photo_avant_lien = ?, photo_apres_lien = ?, date_rapport = NOW()
+     WHERE id = ?`,
+    [rapport, photo_avant_lien || null, photo_apres_lien || null, id]
   );
   return obtenirParId(id);
 }

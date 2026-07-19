@@ -6,6 +6,7 @@ const router = express.Router();
 // (verifie dans adminRoutes.js : c'est le meme import chez toi).
 const { authentifier } = require('../middleware/authMiddleware');
 const estCollaborateur = require('../middleware/estcollaborateur');
+const uploadRapportCollaboration = require('../middleware/uploadRapportCollaboration');
 const collaborateurController = require('../controllers/Collaborateurcontroller');
 const adminCollaborationController = require('../controllers/Admincollaborationcontroller');
 
@@ -26,7 +27,7 @@ router.get('/collaborateur/ma-demande', authentifier, collaborateurController.ma
 router.get('/collaborateur/signalements', authentifier, estCollaborateur, collaborateurController.listerSignalements);
 router.post('/collaborateur/signalements/:id/proposer', authentifier, estCollaborateur, collaborateurController.proposerSolution);
 router.get('/collaborateur/propositions', authentifier, estCollaborateur, collaborateurController.mesPropositions);
-router.post('/collaborateur/propositions/:id/rapport', authentifier, estCollaborateur, collaborateurController.envoyerRapport);
+router.post('/collaborateur/propositions/:id/rapport', authentifier, estCollaborateur, uploadRapportCollaboration, collaborateurController.envoyerRapport);
 
 // ---- Admin : demandes de statut collaborateur ----
 router.get('/admin/demandes-collaborateur', authentifier, estAdmin, adminCollaborationController.listerDemandes);

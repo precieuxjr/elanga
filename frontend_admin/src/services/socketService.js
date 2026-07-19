@@ -4,14 +4,11 @@ import { io } from 'socket.io-client';
 // api.js pour le REST. Calque sur frontend_user/src/services/socketService.js.
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
-// ATTENTION : verifie que 'ecokin_token' est bien la cle utilisee par le
-// store d'authentification de frontend_admin (store/auth.js). Si l'admin
-// stocke son token sous un autre nom, ajuste la ligne ci-dessous - sinon la
-// connexion socket echouera silencieusement (getSocket() restera null).
 let socket = null;
 
 function connecterSocket() {
-  const token = localStorage.getItem('ecokin_token');
+  // Cle confirmee par frontend_admin/src/services/api.js (intercepteur Axios).
+  const token = localStorage.getItem('elanga_admin_token');
   if (!token) return null;
 
   if (socket && socket.connected) return socket;

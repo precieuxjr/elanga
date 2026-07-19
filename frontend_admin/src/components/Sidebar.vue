@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { LayoutDashboard, Users, Flag, LogOut, Menu, X, Bell, Clock, MapPin } from 'lucide-vue-next';
+import { LayoutDashboard, Users, Flag, LogOut, Menu, X, Bell, Clock, MapPin, HeartHandshake } from 'lucide-vue-next';
 import { useAuthStore } from '@/store/auth';
 import adminService from '@/services/adminService';
 import socketService from '@/services/socketService';
@@ -14,7 +14,8 @@ const authStore = useAuthStore();
 const liens = [
   { nom: 'tableau-de-bord', libelle: 'Tableau de bord', icone: LayoutDashboard },
   { nom: 'utilisateurs', libelle: 'Utilisateurs', icone: Users },
-  { nom: 'signalements', libelle: 'Signalements', icone: Flag }
+  { nom: 'signalements', libelle: 'Signalements', icone: Flag },
+  { nom: 'collaborateurs', libelle: 'Collaborateurs', icone: HeartHandshake }
 ];
 
 const menuOuvert = ref(false);
