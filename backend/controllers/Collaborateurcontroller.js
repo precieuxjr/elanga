@@ -1,4 +1,4 @@
-const demandeCollaborateurModel = require('../models/demandeCollaborateurModel');
+const demandeCollaborateurModel = require('../models/demandecollaborateur_model.js');
 const collaborationModel = require('../models/collaborationModel');
 const signalementModel = require('../models/signalementModel');
 
